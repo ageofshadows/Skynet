@@ -1,0 +1,14 @@
+﻿  Skynet.cpp
+D:\Trading\Skynet\ibapi\client\EReaderOSSignal.h(27): warning C4290: C++ exception specification ignored except to indicate a function is not __declspec(nothrow)
+D:\Trading\Skynet\ibapi\client\EReader.h(12): warning C4099: 'EReaderSignal': type name first seen using 'struct' now seen using 'class'
+  d:\trading\skynet\ibapi\client\EReaderSignal.h(6): note: see declaration of 'EReaderSignal'
+Skynet.cpp(19): warning C4473: 'printf' : not enough arguments passed for format string
+  Skynet.cpp(19): note: placeholders and their parameters expect 1 variadic arguments, but 0 were provided
+  Skynet.cpp(19): note: the missing variadic argument 1 is required by format string '%u'
+  Generating code
+  883 of 2379 functions (37.1%) were compiled, the rest were copied from previous compilation.
+    34 functions were new in current compilation
+    94 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  Skynet.vcxproj -> D:\Trading\Skynet\x64\Release\Skynet.exe
+  Skynet.vcxproj -> D:\Trading\Skynet\x64\Release\Skynet.pdb (Full PDB)
