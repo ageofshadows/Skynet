@@ -35,6 +35,12 @@ void SkynetAlgorithm::updateBarLastMin(long tickerId, int min) {
 	barLastMin_[tickerId] = min;
 }
 
+int SkynetAlgorithm::numberBars(long tickerId) {
+	auto it = barData_.find(tickerId);
+	
+	return it != barData_.end() ? it->second.size() : 0;
+}
+
 std::vector<int> SkynetAlgorithm::depolyStrategy(Strategy, std::vector<TickerId> t) {
 	return fxSpotTriangle(t);
 }
