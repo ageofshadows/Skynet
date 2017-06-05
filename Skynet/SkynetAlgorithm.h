@@ -29,6 +29,7 @@ public:
 	std::vector<SkynetBarData> getBarData(long tickerId);
 	void updateBarData(long tickerId, std::vector<SkynetBarData> bar);
 	int getBarLastMin(long tickerId);
+	void updateBarLastMin(long tickerId, int min);
 
 	std::vector<int> depolyStrategy(Strategy, std::vector<TickerId>);
 
