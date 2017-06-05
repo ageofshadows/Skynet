@@ -769,6 +769,58 @@ void SkynetEWrapper::tickPrice(TickerId tickerId, TickType field, double price, 
 	printf("Tick Price. Ticker Id: %ld, Field: %d, Price: %g, CanAutoExecute: %d\n", tickerId, (int)field, price, canAutoExecute);
 	current_time = localtime(&t);
 	current_min = current_time->tm_min;
+	
+	if (field == 68) {
+		
+		if (!skynetAlgo_->isBarData(tickerId)) {
+			std::vector<SkynetBarData> bars;
+			SkynetBarData bar = SkynetBarData();
+			
+			bar.open = price;
+            bar.high = price;
+            bar.low = price;
+            bar.close = price;
+            
+            bar.min = current_min;
+			
+			bars.push_back(bar);
+			
+			skynetAlgo_->updateBarData(tickerId, bars);
+			skynetAlgo_->updateBarLastMin(tickerId, current_min);
+
+		} else {
+			std::vector<SkynetBarData> bars = skynetAlgo_->getBarData(tickerId);
+			last_min = skynetAlgo_->getBarLastMin(tickerId);
+			
+			if (current_min != last_min) {
+				SkynetBarData bar = SkynetBarData();
+			
+				bar.open = price;
+				bar.high = price;
+				bar.low = price;
+				bar.close = price;
+
+				bar.min = current_min;
+
+				bars.push_back(bar);
+
+				skynetAlgo_->updateBarData(tickerId, bars);
+				skynetAlgo_->updateBarLastMin(tickerId, current_min);
+				
+			} else {
+				SkynetBarData bar = bars.back();
+				
+				bar.high = std::max(bar.high, price);
+				bar.low = std::min(bar.low, price);
+				bar.close = price;
+				
+				bars.pop_back();
+				bars.push_back(bar);
+				
+				skynetAlgo_->updateBarData(tickerId, bars);
+			}
+		}
+	}
 
 	//fprintf(pFile, "Tick Price. Ticker Id: %ld, Field: %d, Price: %g, CanAutoExecute: %d\n", tickerId, (int)field, price, canAutoExecute);
 	//ore::data::Log::instance().logStream() << "Ticker Id: " + std::to_string(tickerId) + " Field: " + std::to_string((int)field) + " Price: " + std::to_string(price);
