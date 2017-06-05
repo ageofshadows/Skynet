@@ -28,6 +28,7 @@ public:
 	bool isBarData(long tickerId);
 	std::vector<SkynetBarData> getBarData(long tickerId);
 	void updateBarData(long tickerId, std::vector<SkynetBarData> bar);
+	int getBarLastMin(long tickerId);
 
 	std::vector<int> depolyStrategy(Strategy, std::vector<TickerId>);
 
@@ -37,6 +38,7 @@ private:
 private:
 	map<pair<long, int>, double> tickPrice_;
 	map<long, std::vector<SkynetBarData>> barData_;
+	map<long, int> barLastMin_;
 };
 
 struct SkynetBarData
