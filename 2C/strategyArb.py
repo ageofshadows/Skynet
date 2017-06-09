@@ -165,7 +165,7 @@ class ArbStrategy(ArbTemplate):
             self.direction = str(data['direction'])
             self.offset = str(data['offset'])
             self.tickState = TICK_SEND
-            self.state = u'Ready to order'
+            self.state = u'Triggered'
         self.putEvent()
 
     #----------------------------------------------------------------------
@@ -282,14 +282,14 @@ class ArbStrategy(ArbTemplate):
             else:
                 break
 
-        if not self.Lock and self.tickState == TICK_SEND: 
-            if self.price >= self.askPrice1 and self.direction == DIR_LONG:
-		self.writeArbLog(u'%s策略启动 12' %self.tickState)
-                self.reFillOrder(1,self.volume)
-                self.refreshCost = True
-            elif self.price <= self.bidPrice1 and self.direction == DIR_SHORT:
-                self.reFillOrder(1,self.volume)
-                self.refreshCost = True
+	    if not self.tick1.datetime==None and not self.tick2.datetime==None
+			if not self.Lock and self.tickState == TICK_SEND: 
+				if self.price >= self.askPrice1 and self.direction == DIR_LONG:
+					self.reFillOrder(1,self.volume)
+					self.refreshCost = True
+				elif self.price <= self.bidPrice1 and self.direction == DIR_SHORT:
+					self.reFillOrder(1,self.volume)
+					self.refreshCost = True
 		
         volumeRemain = self.volumeRemain
 	
@@ -308,7 +308,7 @@ class ArbStrategy(ArbTemplate):
                     self.reFillOrder(4,volumeRemain)
 
         if self.tickState == TICK_STOP and self.refreshCost:
-            self.state = u'停止触发'
+            self.state = u'Untriggered'
             if self.direction == DIR_LONG:
                 cost = self.calcCost()
                 if not (self.aPos-self.volume)==0:
@@ -503,34 +503,17 @@ class ArbStrategy(ArbTemplate):
 	
         if self.direction == DIR_LONG:
             if X > 0:
-                if self.offset == OFF_OPEN:
-                    self.buy(C,ask,volumeRemain*X)
-                elif self.offset == OFF_CLOSE:
-                    self.cover_fak(C,ask,volumeRemain*X)
-                self.Lock = True
-                self.tickState = state
+                self.buy(C,ask,volumeRemain*X)
             elif X < 0:
-                if self.offset == OFF_OPEN:
-                    self.short(C,bid,-volumeRemain*X)
-                elif self.offset == OFF_CLOSE:
-                    self.sell_fak(C,bid,-volumeRemain*X)
-                self.Lock = True
-                self.tickState = state
+                self.short(C,bid,-volumeRemain*X)
         elif self.direction == DIR_SHORT:
             if X > 0:
-                if self.offset == OFF_OPEN:
-                    self.short_fak(C,bid,volumeRemain*X)
-                elif self.offset == OFF_CLOSE:
-                    self.sell_fak(C,bid,volumeRemain*X)
-                self.Lock = True
-                self.tickState = state
+                self.short(C,bid,volumeRemain*X)
             elif X < 0:
-                if self.offset == OFF_OPEN:
-                    self.buy_fak(C,ask,-volumeRemain*X)
-                elif self.offset == OFF_CLOSE:
-                    self.cover_fak(C,ask,-volumeRemain*X)
-                self.Lock = True
-                self.tickState = state
+                self.buy(C,ask,-volumeRemain*X)
+					
+		self.Lock = True
+        self.tickState = state
     
     #----------------------------------------------------------------------
     def calcCost(self):
