@@ -380,13 +380,13 @@ class ArbStrategy(ArbTemplate):
         super(ArbStrategy, self).onTrade(trade)
 	volume = trade.volume
 	price = trade.price
-        if trade.vtSymbol == self.C1:
+        if trade.symbol == self.C1:
             self.price1 = trade.price
-        elif trade.vtSymbol == self.C2:
+        elif trade.symbol == self.C2:
             self.price2 = trade.price
-        elif trade.vtSymbol == self.C3:
+        elif trade.symbol == self.C3:
             self.price3 = trade.price
-        elif trade.vtSymbol == self.C4:
+        elif trade.symbol == self.C4:
             self.price4 = trade.price
 
         if trade != None and trade.direction == DIRECTION_LONG
