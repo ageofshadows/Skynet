@@ -290,22 +290,6 @@ class ArbStrategy(ArbTemplate):
 				elif self.price <= self.bidPrice1 and self.direction == DIR_SHORT:
 					self.reFillOrder(1,self.volume)
 					self.refreshCost = True
-		
-        volumeRemain = self.volumeRemain
-	
-        if not self.Lock:
-            if self.tickState == TICK_CON1:
-                if volumeRemain > 0:
-                    self.reFillOrder(1,volumeRemain)
-            elif self.tickState == TICK_CON2:
-                if volumeRemain > 0:
-                    self.reFillOrder(2,volumeRemain)
-            elif self.tickState == TICK_CON3:
-                if volumeRemain > 0:
-                    self.reFillOrder(3,volumeRemain)
-            elif self.tickState == TICK_CON4:
-                if volumeRemain > 0:
-                    self.reFillOrder(4,volumeRemain)
 
         if self.tickState == TICK_STOP and self.refreshCost:
             self.state = u'Untriggered'
@@ -362,25 +346,15 @@ class ArbStrategy(ArbTemplate):
 
     #----------------------------------------------------------------------
     def onOrderTrade(self, order):
-        """收到委托完成推送（必须由用户继承实现）"""
+        """Previous leg fully filled; order next contract"""
         # CTA委托类型映射
         if self.tickState == TICK_CON1:
             if self.ncon > 1:
                 self.reFillOrder(2,self.volume)
             elif self.ncon <= 1:
-                self.tickState = TICK_STOP
+                self.tickState = TICK_SEND
         elif self.tickState == TICK_CON2:
-            if self.ncon > 2:
-                self.reFillOrder(3,self.volume)
-            elif self.ncon <= 2:
-                self.tickState = TICK_STOP
-        elif self.tickState == TICK_CON3:
-            if self.ncon > 3:
-                self.reFillOrder(4,self.volume)
-            elif self.ncon <= 3:
-                self.tickState = TICK_STOP
-        elif self.tickState == TICK_CON4:
-            self.tickState = TICK_STOP
+            self.tickState = TICK_SEND
         
         self.volumeRemain = 0
 	self.Lock = False
@@ -394,29 +368,12 @@ class ArbStrategy(ArbTemplate):
         volumeRemain = order.totalVolume - order.tradedVolume
 	
         if self.tickState == TICK_CON1:
-            if volumeRemain > 0:
-                self.volumeRemain = volumeRemain
-            elif self.ncon > 1:
-                self.reFillOrder(2,self.volume)
+            if self.ncon > 1:
+                self.reFillOrder(2,order.tradedVolume)
             elif self.ncon <= 1:
-                self.tickState = TICK_STOP
+                self.tickState = TICK_SEND
         elif self.tickState == TICK_CON2:
-            if volumeRemain > 0:
-                self.volumeRemain = volumeRemain
-            elif self.ncon > 2:
-                self.reFillOrder(3,self.volume)
-            elif self.ncon <= 2:
-                self.tickState = TICK_STOP
-        elif self.tickState == TICK_CON3:
-            if volumeRemain > 0:
-                self.volumeRemain = volumeRemain
-            elif self.ncon > 3:
-                self.reFillOrder(4,self.volume)
-            elif self.ncon <= 3:
-                self.tickState = TICK_STOP
-        elif self.tickState == TICK_CON4:
-            if volumeRemain > 0:
-                self.volumeRemain = volumeRemain
+            self.reFillOrder(2,volumeRemain)
 	
     #----------------------------------------------------------------------
     def onTrade(self, trade):
@@ -432,56 +389,16 @@ class ArbStrategy(ArbTemplate):
         elif trade.vtSymbol == self.C4:
             self.price4 = trade.price
 
-        if trade != None and trade.direction == u'多' and trade.offset == u'开仓':
+        if trade != None and trade.direction == DIRECTION_LONG
 	    self.output(trade.tradeTime
 	    +u' 合约|' + str(trade.vtSymbol)
 	    +u'|买开成交|' + str(price)
 	    +u'|手数|' + str(trade.volume))
 	    self.output(u' ')
-        elif trade != None and trade.direction == u'多' and trade.offset == u'平仓':
-	    self.output(trade.tradeTime
-	    +u' 合约|' + str(trade.vtSymbol)
-	    +u'|买平成交|' + str(price)
-	    +u'|手数|' + str(trade.volume))
-	    self.output(u' ')
-        elif trade != None and trade.direction == u'多' and trade.offset == u'平今':
-            self.orderType = u'买平今'
-	    self.output(trade.tradeTime
-	    +u' 合约|'+str(trade.vtSymbol)
-	    +u'|买平今成交|' + str(price)
-	    +u'|手数|' + str(trade.volume))
-	    self.output(u' ')
-        elif trade != None and trade.direction == u'多' and trade.offset == u'平昨':
-	    self.output(trade.tradeTime
-	    +u' 合约|'+str(trade.vtSymbol)
-	    +u'|买平昨成交|' + str(price)
-	    +u'|手数|' + str(trade.volume))
-	    self.output(u' ')
-        elif trade != None and trade.direction == u'空' and trade.offset == u'开仓':
+        elif trade != None and trade.direction == DIRECTION_SHORT
 	    self.output(trade.tradeTime
 	    +u' 合约|' + str(trade.vtSymbol)
 	    +u'|卖开成交|' + str(price)
-	    +u'|手数|' + str(trade.volume))
-	    self.output(u' ')
-        elif trade != None and trade.direction == u'空' and trade.offset == u'平仓':
-            self.orderType = u'卖平'
-	    self.output(trade.tradeTime
-	    +u' 合约|'+str(trade.vtSymbol)
-	    +u'|卖平成交|' + str(price)
-	    +u'|手数|' + str(trade.volume))
-	    self.output(u' ')
-        elif trade != None and trade.direction == u'空' and trade.offset == u'平今':
-            self.orderType = u'卖平今'
-	    self.output(trade.tradeTime
-	    +u' 合约|'+str(trade.vtSymbol)
-	    +u'|卖平今成交|' + str(price)
-	    +u'|手数|' + str(trade.volume))
-	    self.output(u' ')
-        elif trade != None and trade.direction == u'空' and trade.offset == u'平昨':
-            self.orderType = u'卖平昨'
-	    self.output(trade.tradeTime
-	    +u' 合约|'+str(trade.vtSymbol)
-	    +u'|卖平昨成交|' + str(price)
 	    +u'|手数|' + str(trade.volume))
 	    self.output(u' ')
 
