@@ -418,6 +418,7 @@ class ArbEngine(object):
             # 创建策略实例
             strategy = strategyClass(self, setting)  
             self.strategyDict[name] = strategy
+	
             symbolList = strategy.symbolList
             for vtSymbol in symbolList:
                 # 保存Tick映射关系
