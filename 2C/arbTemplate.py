@@ -106,7 +106,7 @@ class ArbTemplate(object):
     #----------------------------------------------------------------------
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
-	pass
+	raise NotImplementedError
 
     #----------------------------------------------------------------------
     def onTrade(self, trade):
