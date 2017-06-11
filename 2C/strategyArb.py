@@ -98,14 +98,15 @@ class ArbStrategy(ArbTemplate):
     varList = ['inited',
                'trading',
                'aPos',
-               'aCost']
+               'aCost',
+               'tickState']
 
     #----------------------------------------------------------------------
     def __init__(self, arbEngine, setting):
         """Constructor"""
         super(ArbStrategy, self).__init__(arbEngine, setting)
 
-	# 初始化所有变量
+        # 初始化所有变量
         self.tick1 = VtTickData()      # 合约1 Tick
         self.tick2 = VtTickData()      # 合约2 Tick
         self.tick3 = VtTickData()      # 合约3 Tick
@@ -133,9 +134,9 @@ class ArbStrategy(ArbTemplate):
         self.Lock = False	        # 发单操作锁,防止重复发单
         self.refreshCost = False	       # 刷新成本,防止重复
         self.tickState = TICK_STOP      # 状态机状态
-	
-	self.productClass = PRODUCT_FOREX    # 产品类型（只有IB接口需要）
-	self.currency = EMPTY_STRING        # 货币（只有IB接口需要）
+
+        self.productClass = PRODUCT_FOREX    # 产品类型（只有IB接口需要）
+        self.currency = EMPTY_STRING        # 货币（只有IB接口需要）
 
         # 注意策略类中的可变对象属性（通常是list和dict等），在策略初始化时需要重新创建，
         # 否则会出现多个策略实例之间数据共享的情况，有可能导致潜在的策略逻辑错误风险，
@@ -162,6 +163,7 @@ class ArbStrategy(ArbTemplate):
         else:
             self.price = float(data['price'])
             self.volume = int(data['volume'])
+            self.lastVolume = int(data['volume'])
             self.direction = str(data['direction'])
             self.offset = str(data['offset'])
             self.tickState = TICK_SEND
@@ -177,7 +179,7 @@ class ArbStrategy(ArbTemplate):
         self.price = 0
         self.volume = 0
         self.tickState = TICK_STOP
-        self.state = u'停止触发'
+        self.state = u'Untriggered'
         self.putEvent()
 
     #----------------------------------------------------------------------
@@ -195,6 +197,7 @@ class ArbStrategy(ArbTemplate):
             if cList[i] in posDict:
                 if not cList[i] in self.allContracts:
                     self.allContracts[cList[i]] = arbContract(cList[i])
+                    
                 if posDict[cList[i]].direction == DIRECTION_LONG:
                     self.allContracts[cList[i]].tpos0L = posDict[cList[i]].position -  posDict[cList[i]].ydPosition
                     self.allContracts[cList[i]].ypos0L = posDict[cList[i]].ydPosition
@@ -203,13 +206,16 @@ class ArbStrategy(ArbTemplate):
                     self.allContracts[cList[i]].tpos0S = posDict[cList[i]].position -  posDict[cList[i]].ydPosition
                     self.allContracts[cList[i]].ypos0S = posDict[cList[i]].ydPosition
                     n = int(-posDict[cList[i]].position/xList[i])
+                    
                 if lastn >=0 and n >= 0:
                     self.aPos = min(lastn, n)
                 elif lastn <=0 and n<=0:
                     self.aPos = max(lastn, n)
                 else:
                     self.aPos = 0
+                    
                 lastn = n
+        
         self.putEvent()
 
     #----------------------------------------------------------------------
@@ -233,7 +239,7 @@ class ArbStrategy(ArbTemplate):
             d['C'+str(i)] = None
         for i in xrange(1,5):
             if not xList[i-1] == '':
-		d['X'+str(i)] = int(xList[i-1])
+                d['X'+str(i)] = int(xList[i-1])
                 d['C'+str(i)] = str(cList[i-1])
                 self.symbolList.append(str(cList[i-1]))
                 self.ncon += 1
@@ -243,15 +249,15 @@ class ArbStrategy(ArbTemplate):
                     self.contractF += '+'+str(xList[i-1])+'*'+str(cList[i-1])
             else:
                 break
-        
+
         self.arbEngine.subscribe(self, self.symbolList)
         self.putEvent()
 
     #----------------------------------------------------------------------
     def onStop(self):
-	"""停止策略（必须由用户继承实现）"""
-	self.writeArbLog(u'%s策略停止' %self.name)
-	self.putEvent()        
+        """停止策略（必须由用户继承实现）"""
+        self.writeArbLog(u'%s策略停止' %self.name)
+        self.putEvent()        
 
     #----------------------------------------------------------------------
     def onTick(self, tick):
@@ -265,10 +271,10 @@ class ArbStrategy(ArbTemplate):
             self.tick3 = tick
         elif tick.symbol == self.C4:
             self.tick4 = tick
-	    
+
         self.askPrice1 = 0
         self.bidPrice1 = 0
-	
+
         d = self.__dict__
         allTicks = [None, self.tick1, self.tick2, self.tick3, self.tick4]
 
@@ -281,37 +287,29 @@ class ArbStrategy(ArbTemplate):
                 self.bidPrice1 += d['X'+str(i)]*allTicks[i].askPrice1
             else:
                 break
-
-	    if not self.tick1.datetime==None and not self.tick2.datetime==None
-			if not self.Lock and self.tickState == TICK_SEND: 
-				if self.price >= self.askPrice1 and self.direction == DIR_LONG:
-					self.reFillOrder(1,self.volume)
-					self.refreshCost = True
-				elif self.price <= self.bidPrice1 and self.direction == DIR_SHORT:
-					self.reFillOrder(1,self.volume)
-					self.refreshCost = True
-
-        if self.tickState == TICK_STOP and self.refreshCost:
-            self.state = u'Untriggered'
-            if self.direction == DIR_LONG:
-                cost = self.calcCost()
-                if not (self.aPos-self.volume)==0:
-                    self.aCost = (self.aCost*self.aPos+cost*self.volume)/(self.aPos+self.volume)
-                else:
-                    self.aCost = 0
-                self.aPos += self.volume
-                self.aCost = self.aCost
-                self.refreshCost = False
-            elif self.direction == DIR_SHORT:
-                cost = self.calcCost()
-                if not (self.aPos-self.volume)==0:
-                    self.aCost = (self.aCost*self.aPos-cost*self.volume)/(self.aPos-self.volume)
-                else:
-                    self.aCost = 0
-                self.aPos -= self.volume
-                self.aCost = self.aCost
-                self.refreshCost = False
         
+        contract = None
+        
+        if not self.Lock and self.tickState == TICK_SEND: 
+            if self.price >= self.askPrice1:
+                self.direction == DIR_LONG
+                contract = self.allContracts[self.C1]
+                if not contract:
+                    self.reFillOrder(1,self.volume)
+                elif contract.pos<0:
+                    self.reFillOrder(1,abs(contract.pos))
+                elif contract.pos==0:
+                    self.reFillOrder(1,self.volume)
+            elif self.price <= self.bidPrice1:
+                self.direction == DIR_SHORT
+                contract = self.allContracts[self.C1]
+                if not contract:
+                    self.reFillOrder(1,self.volume)
+                elif contract.pos>0:
+                    self.reFillOrder(1,abs(contract.pos))
+                elif contract.pos==0:
+                    self.reFillOrder(1,self.volume)                
+                    
         self.putEvent()
 
     #----------------------------------------------------------------------
@@ -322,11 +320,11 @@ class ArbStrategy(ArbTemplate):
         self.closeArray[0:self.bufferSize-1] = self.closeArray[1:self.bufferSize]
         self.highArray[0:self.bufferSize-1] = self.highArray[1:self.bufferSize]
         self.lowArray[0:self.bufferSize-1] = self.lowArray[1:self.bufferSize]
-        
+
         self.closeArray[-1] = bar.close
         self.highArray[-1] = bar.high
         self.lowArray[-1] = bar.low
-        
+
         self.bufferCount += 1
         if self.bufferCount < self.bufferSize:
             return
@@ -334,15 +332,8 @@ class ArbStrategy(ArbTemplate):
     #----------------------------------------------------------------------
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
-        super(ArbStrategy, self).onOrder(order)
         # 对于无需做细粒度委托控制的策略，可以忽略onOrder
-        # self.lastOrder = order
-        # CTA委托类型映射
-
-        if order != None and order.status == STATUS_ALLTRADED and order.tradedVolume == order.totalVolume :
-	    self.onOrderTrade(order)
-        elif order != None and order.status == STATUS_ALLTRADED and order.tradedVolume < order.totalVolume :
-	    self.onOrderCancel(order)
+        pass        
 
     #----------------------------------------------------------------------
     def onOrderTrade(self, order):
@@ -355,18 +346,18 @@ class ArbStrategy(ArbTemplate):
                 self.tickState = TICK_SEND
         elif self.tickState == TICK_CON2:
             self.tickState = TICK_SEND
-        
+
         self.volumeRemain = 0
-	self.Lock = False
+        self.Lock = False
 
     #----------------------------------------------------------------------
     def onOrderCancel(self, order):
         """收到委托完成推送（必须由用户继承实现）"""
         # CTA委托类型映射
-	
-	self.Lock = False
+
+        self.Lock = False
         volumeRemain = order.totalVolume - order.tradedVolume
-	
+
         if self.tickState == TICK_CON1:
             if self.ncon > 1:
                 self.reFillOrder(2,order.tradedVolume)
@@ -374,14 +365,19 @@ class ArbStrategy(ArbTemplate):
                 self.tickState = TICK_SEND
         elif self.tickState == TICK_CON2:
             self.reFillOrder(2,volumeRemain)
-	
+
     #----------------------------------------------------------------------
     def onTrade(self, trade):
+        """收到成交推送（必须由用户继承实现）"""
+        # 对于无需做细粒度委托控制的策略，可以忽略onTrade        
         super(ArbStrategy, self).onTrade(trade)
-	volume = trade.volume
-	price = trade.price
+        
+        contract = self.allContracts[trade.symbol]
+        
+        price = trade.price
         if trade.symbol == self.C1:
             self.price1 = trade.price
+            self.lastVolume = abs(contract.pos)
         elif trade.symbol == self.C2:
             self.price2 = trade.price
         elif trade.symbol == self.C3:
@@ -389,35 +385,54 @@ class ArbStrategy(ArbTemplate):
         elif trade.symbol == self.C4:
             self.price4 = trade.price
 
-        if trade != None and trade.direction == DIRECTION_LONG
-	    self.output(trade.tradeTime
-	    +u' 合约|' + str(trade.vtSymbol)
-	    +u'|买开成交|' + str(price)
-	    +u'|手数|' + str(trade.volume))
-	    self.output(u' ')
-        elif trade != None and trade.direction == DIRECTION_SHORT
-	    self.output(trade.tradeTime
-	    +u' 合约|' + str(trade.vtSymbol)
-	    +u'|卖开成交|' + str(price)
-	    +u'|手数|' + str(trade.volume))
-	    self.output(u' ')
+        volumeRemain = self.lastVolume - abs(contract.pos)  
+            
+        if volumeRemain == 0:
+            self.onTradeFullFilled(self.lastVolume)
+        elif volumeRemain >0:
+            self.onTradePartFilled(volumeRemain)
+                    
+    #----------------------------------------------------------------------
+    def onTradeFullFilled(self, lastVolume):
+        """Previous leg fully filled; order next contract"""
+        # CTA委托类型映射
+        if self.tickState == TICK_CON1:
+            if self.ncon > 1:
+                self.reFillOrder(2,self.lastVolume)
+            elif self.ncon <= 1:
+                self.tickState = TICK_SEND
+        elif self.tickState == TICK_CON2:
+            self.tickState = TICK_SEND
+
+        self.volumeRemain = 0
+        self.Lock = False
+        
+    #----------------------------------------------------------------------
+    def onTradePartFilled(self, volumeRemain):
+        """收到委托完成推送（必须由用户继承实现）"""
+        # CTA委托类型映射
+
+        self.Lock = False
+
+        if self.tickState == TICK_CON2:
+            self.reFillOrder(2,volumeRemain)
 
     #----------------------------------------------------------------------
     def reFillOrder(self, i, volumeRemain):
-	
+
         askList = [self.tick1.askPrice1, self.tick2.askPrice1, self.tick3.askPrice1, self.tick4.askPrice1]
         bidList = [self.tick1.bidPrice1, self.tick2.bidPrice1, self.tick3.bidPrice1, self.tick4.bidPrice1]
-	
+
         stateList = [TICK_CON1, TICK_CON2, TICK_CON3, TICK_CON4] 
-	
+
         X = self.__dict__['X'+str(i)]
         C = self.__dict__['C'+str(i)]
-	
+
         ask = askList[i-1]
         bid = bidList[i-1]
-	
+
         state = stateList[i-1]
-	
+
         if self.direction == DIR_LONG:
             if X > 0:
                 self.buy(C,ask,volumeRemain*X)
@@ -428,10 +443,10 @@ class ArbStrategy(ArbTemplate):
                 self.short(C,bid,volumeRemain*X)
             elif X < 0:
                 self.buy(C,ask,-volumeRemain*X)
-					
-		self.Lock = True
+
+        self.Lock = True
         self.tickState = state
-    
+
     #----------------------------------------------------------------------
     def calcCost(self):
         priceList = [self.price1, self.price2, self.price3, self.price4]
@@ -440,14 +455,14 @@ class ArbStrategy(ArbTemplate):
         for i in xrange(0,self.ncon):
             cost += xList[i]*priceList[i]
         return cost
-    
+
     #----------------------------------------------------------------------
     def output(self, content):
         """输出信息（必须由用户继承实现）"""
         # 输出信息
-	if self.backtesting:
-		self.arbEngine.output(content)
-        
+        if self.backtesting:
+            self.arbEngine.output(content)
+
         self.writeArbLog(content)
 
     #----------------------------------------------------------------------
