@@ -387,12 +387,12 @@ class ArbStrategy(ArbTemplate):
         elif trade.symbol == self.C4:
             self.price4 = trade.price
 
-        volumeRemain = self.lastVolumeC1 - abs(contract.pos)  
+        volumeRemain = self.lastVolume - abs(contract.pos)  
             
         if volumeRemain == 0:
             self.onTradeFullFilled(self.lastVolumeC1)
-        elif volumeRemain >0:
-            self.onTradePartFilled(volumeRemain)
+        elif volumeRemain != 0:
+            self.onTradePartFilled(abs(volumeRemain))
                     
     #----------------------------------------------------------------------
     def onTradeFullFilled(self, lastVolume):
@@ -400,7 +400,7 @@ class ArbStrategy(ArbTemplate):
         # CTA委托类型映射
         if self.tickState == TICK_CON1:
             if self.ncon > 1:
-                self.reFillOrder(2,self.lastVolume)
+                self.reFillOrder(2,lastVolume)
             elif self.ncon <= 1:
                 self.tickState = TICK_SEND
         elif self.tickState == TICK_CON2:
