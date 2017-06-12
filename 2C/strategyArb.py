@@ -396,7 +396,13 @@ class ArbStrategy(ArbTemplate):
         volumeRemain = self.lastVolume - abs(contract.pos)  
             
         if volumeRemain == 0:
-            self.onTradeFullFilled(self.lastVolumeC1)
+            if self.offset == OFF_OPEN:
+                self.onTradeFullFilled(self.lastVolumeC1)
+            elif self.offset == OFF_CLOSE:
+                if self.lastVolume == 0:
+                    self.onTradeFullFilled(self.lastVolumeC1)
+                elif self.lastVolume != 0:
+                    self.onTradePartFilled(abs(lastVolume))
         elif volumeRemain != 0:
             self.onTradePartFilled(abs(volumeRemain))
                     
@@ -406,7 +412,11 @@ class ArbStrategy(ArbTemplate):
         # CTA委托类型映射
         if self.tickState == TICK_CON1:
             if self.ncon > 1:
-                self.reFillOrder(2,lastVolume)
+                if self.offset == OFF_OPEN:
+                    self.reFillOrder(2,lastVolume)
+                elif self.offset == OFF_CLOSE:
+                    contract = self.allContracts[self.C2]
+                    self.reFillOrder(2,abs(contract.pos))
             elif self.ncon <= 1:
                 self.tickState = TICK_SEND
         elif self.tickState == TICK_CON2:
@@ -422,8 +432,10 @@ class ArbStrategy(ArbTemplate):
 
         self.Lock = False
 
-        if self.tickState == TICK_CON2:
-            self.reFillOrder(2,volumeRemain)
+        if self.tickState == TICK_CON1:
+            self.reFillOrder(1,volumeRemain)
+        elif self.tickState == TICK_CON2:
+            self.reFillOrder(2,volumeRemain)    
 
     #----------------------------------------------------------------------
     def reFillOrder(self, i, volumeRemain):
