@@ -130,6 +130,8 @@ class ArbStrategy(ArbTemplate):
 
         self.lastVolume = 0             # 上次发单数
         self.volumeRemain = 0           # 剩余订单
+        
+        self.lastVolumeC1 = 0             # C1 上次发单数
 
         self.Lock = False	        # 发单操作锁,防止重复发单
         self.refreshCost = False	       # 刷新成本,防止重复
@@ -163,7 +165,6 @@ class ArbStrategy(ArbTemplate):
         else:
             self.price = float(data['price'])
             self.volume = int(data['volume'])
-            self.lastVolume = int(data['volume'])
             self.direction = str(data['direction'])
             self.offset = str(data['offset'])
             self.tickState = TICK_SEND
@@ -291,7 +292,7 @@ class ArbStrategy(ArbTemplate):
         contract = None
         
         if not self.Lock and self.tickState == TICK_SEND: 
-            if self.price >= self.askPrice1:
+            if self.price > self.askPrice1:
                 self.direction == DIR_LONG
                 contract = self.allContracts[self.C1]
                 if not contract:
@@ -300,7 +301,7 @@ class ArbStrategy(ArbTemplate):
                     self.reFillOrder(1,abs(contract.pos))
                 elif contract.pos==0:
                     self.reFillOrder(1,self.volume)
-            elif self.price <= self.bidPrice1:
+            elif self.price < self.bidPrice1:
                 self.direction == DIR_SHORT
                 contract = self.allContracts[self.C1]
                 if not contract:
@@ -378,6 +379,7 @@ class ArbStrategy(ArbTemplate):
         if trade.symbol == self.C1:
             self.price1 = trade.price
             self.lastVolume = abs(contract.pos)
+            self.lastVolumeC1 = trade.volume
         elif trade.symbol == self.C2:
             self.price2 = trade.price
         elif trade.symbol == self.C3:
@@ -385,10 +387,10 @@ class ArbStrategy(ArbTemplate):
         elif trade.symbol == self.C4:
             self.price4 = trade.price
 
-        volumeRemain = self.lastVolume - abs(contract.pos)  
+        volumeRemain = self.lastVolumeC1 - abs(contract.pos)  
             
         if volumeRemain == 0:
-            self.onTradeFullFilled(self.lastVolume)
+            self.onTradeFullFilled(self.lastVolumeC1)
         elif volumeRemain >0:
             self.onTradePartFilled(volumeRemain)
                     
