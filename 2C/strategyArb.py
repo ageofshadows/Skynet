@@ -295,29 +295,31 @@ class ArbStrategy(ArbTemplate):
         
         if not self.Lock and self.tickState == TICK_SEND: 
             if self.price > self.askPrice1:
-                self.varDirection == DIR_LONG
-                contract = self.allContracts[self.C1]
-                if not contract:
-                    self.varOffset == OFF_OPEN
-                    self.reFillOrder(1,self.volume)
-                elif contract.pos<0:
-                    self.varOffset == OFF_CLOSE
-                    self.reFillOrder(1,abs(contract.pos))
-                elif contract.pos==0:
-                    self.varOffset == OFF_OPEN
+                self.varDirection = DIR_LONG
+                if self.C1 in self.allContracts:
+                    contract = self.allContracts[self.C1]
+                    if contract.pos<0:
+                        self.varOffset = OFF_CLOSE
+                        self.reFillOrder(1,abs(contract.pos))
+                    elif contract.pos==0:
+                        self.varOffset = OFF_OPEN
+                        self.reFillOrder(1,self.volume)                    
+                else:
+                    self.varOffset = OFF_OPEN
                     self.reFillOrder(1,self.volume)
             elif self.price < self.bidPrice1:
-                self.varDirection == DIR_SHORT
-                contract = self.allContracts[self.C1]
-                if not contract:
-                    self.varOffset == OFF_OPEN
-                    self.reFillOrder(1,self.volume)
-                elif contract.pos>0:
-                    self.varOffset == OFF_CLOSE
-                    self.reFillOrder(1,abs(contract.pos))
-                elif contract.pos==0:
-                    self.varOffset == OFF_OPEN
-                    self.reFillOrder(1,self.volume)                
+                self.varDirection = DIR_SHORT
+                if self.C1 in self.allContracts:
+                    contract = self.allContracts[self.C1]
+                    if contract.pos>0:
+                        self.varOffset = OFF_CLOSE
+                        self.reFillOrder(1,abs(contract.pos))
+                    elif contract.pos==0:
+                        self.varOffset = OFF_OPEN
+                        self.reFillOrder(1,self.volume)                     
+                else:
+                    self.varOffset = OFF_OPEN
+                    self.reFillOrder(1,self.volume)       
                     
         self.putEvent()
 
