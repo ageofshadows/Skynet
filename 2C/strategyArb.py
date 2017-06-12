@@ -296,19 +296,25 @@ class ArbStrategy(ArbTemplate):
                 self.direction == DIR_LONG
                 contract = self.allContracts[self.C1]
                 if not contract:
+                    self.offset == OFF_OPEN
                     self.reFillOrder(1,self.volume)
                 elif contract.pos<0:
+                    self.offset == OFF_CLOSE
                     self.reFillOrder(1,abs(contract.pos))
                 elif contract.pos==0:
+                    self.offset == OFF_OPEN
                     self.reFillOrder(1,self.volume)
             elif self.price < self.bidPrice1:
                 self.direction == DIR_SHORT
                 contract = self.allContracts[self.C1]
                 if not contract:
+                    self.offset == OFF_OPEN
                     self.reFillOrder(1,self.volume)
                 elif contract.pos>0:
+                    self.offset == OFF_CLOSE
                     self.reFillOrder(1,abs(contract.pos))
                 elif contract.pos==0:
+                    self.offset == OFF_OPEN
                     self.reFillOrder(1,self.volume)                
                     
         self.putEvent()
