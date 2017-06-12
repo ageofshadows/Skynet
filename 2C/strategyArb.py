@@ -116,7 +116,9 @@ class ArbStrategy(ArbTemplate):
         self.price2 = EMPTY_FLOAT       # 合约2 成交价
         self.price3 = EMPTY_FLOAT       # 合约3 成交价
         self.price4 = EMPTY_FLOAT       # 合约4 成交价
-
+        
+        self.varDirection = u''  	    # 方向
+        self.varOffset = u''  	        # 开平
 
         self.askPrice1 = EMPTY_FLOAT    # 当前对价可买价
         self.bidPrice1 = EMPTY_FLOAT    # 当前对价可卖价
@@ -293,28 +295,28 @@ class ArbStrategy(ArbTemplate):
         
         if not self.Lock and self.tickState == TICK_SEND: 
             if self.price > self.askPrice1:
-                self.direction == DIR_LONG
+                self.varDirection == DIR_LONG
                 contract = self.allContracts[self.C1]
                 if not contract:
-                    self.offset == OFF_OPEN
+                    self.varOffset == OFF_OPEN
                     self.reFillOrder(1,self.volume)
                 elif contract.pos<0:
-                    self.offset == OFF_CLOSE
+                    self.varOffset == OFF_CLOSE
                     self.reFillOrder(1,abs(contract.pos))
                 elif contract.pos==0:
-                    self.offset == OFF_OPEN
+                    self.varOffset == OFF_OPEN
                     self.reFillOrder(1,self.volume)
             elif self.price < self.bidPrice1:
-                self.direction == DIR_SHORT
+                self.varDirection == DIR_SHORT
                 contract = self.allContracts[self.C1]
                 if not contract:
-                    self.offset == OFF_OPEN
+                    self.varOffset == OFF_OPEN
                     self.reFillOrder(1,self.volume)
                 elif contract.pos>0:
-                    self.offset == OFF_CLOSE
+                    self.varOffset == OFF_CLOSE
                     self.reFillOrder(1,abs(contract.pos))
                 elif contract.pos==0:
-                    self.offset == OFF_OPEN
+                    self.varOffset == OFF_OPEN
                     self.reFillOrder(1,self.volume)                
                     
         self.putEvent()
@@ -396,9 +398,9 @@ class ArbStrategy(ArbTemplate):
         volumeRemain = self.lastVolume - abs(contract.pos)  
             
         if volumeRemain == 0:
-            if self.offset == OFF_OPEN:
+            if self.varOffset == OFF_OPEN:
                 self.onTradeFullFilled(self.lastVolumeC1)
-            elif self.offset == OFF_CLOSE:
+            elif self.varOffset == OFF_CLOSE:
                 if self.lastVolume == 0:
                     self.onTradeFullFilled(self.lastVolumeC1)
                 elif self.lastVolume != 0:
@@ -412,9 +414,9 @@ class ArbStrategy(ArbTemplate):
         # CTA委托类型映射
         if self.tickState == TICK_CON1:
             if self.ncon > 1:
-                if self.offset == OFF_OPEN:
+                if self.varOffset == OFF_OPEN:
                     self.reFillOrder(2,lastVolume)
-                elif self.offset == OFF_CLOSE:
+                elif self.varOffset == OFF_CLOSE:
                     contract = self.allContracts[self.C2]
                     self.reFillOrder(2,abs(contract.pos))
             elif self.ncon <= 1:
@@ -453,12 +455,12 @@ class ArbStrategy(ArbTemplate):
 
         state = stateList[i-1]
 
-        if self.direction == DIR_LONG:
+        if self.varDirection == DIR_LONG:
             if X > 0:
                 self.buy(C,ask,volumeRemain*X)
             elif X < 0:
                 self.short(C,bid,-volumeRemain*X)
-        elif self.direction == DIR_SHORT:
+        elif self.varDirection == DIR_SHORT:
             if X > 0:
                 self.short(C,bid,volumeRemain*X)
             elif X < 0:
